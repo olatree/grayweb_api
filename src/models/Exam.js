@@ -46,12 +46,32 @@ const mongoose = require("mongoose");
 const examSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true },
-    subject: { type: mongoose.Schema.Types.ObjectId, ref: "Subject", required: true },
-    classId: { type: mongoose.Schema.Types.ObjectId, ref: "Class", required: true },
+    subject: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Subject",
+      required: true,
+    },
+    classId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Class",
+      required: true,
+    },
     armId: { type: mongoose.Schema.Types.ObjectId, ref: "Arm" },
-    sessionId: { type: mongoose.Schema.Types.ObjectId, ref: "Session", required: true },
-    termId: { type: mongoose.Schema.Types.ObjectId, ref: "Term", required: true }, // ← new
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    sessionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Session",
+      required: true,
+    },
+    termId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Term",
+      required: true,
+    }, // ← new
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
 
     questions: [{ type: mongoose.Schema.Types.ObjectId, ref: "Question" }],
     duration: { type: Number, required: true },
@@ -71,7 +91,7 @@ const examSchema = new mongoose.Schema(
       default: "draft",
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 examSchema.pre("save", function (next) {

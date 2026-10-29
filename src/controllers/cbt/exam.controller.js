@@ -9,10 +9,21 @@ const Term = require("../../models/Term");
 exports.createExam = async (req, res) => {
   try {
     const {
-      title, subject, classId, armId, sessionId, termId, // ← add termId
-      questionIds, duration, startTime, endTime,
-      passMark, instructions, shuffleQuestions,
-      shuffleOptions, showResultAfter,
+      title,
+      subject,
+      classId,
+      armId,
+      sessionId,
+      termId, // ← add termId
+      questionIds,
+      duration,
+      startTime,
+      endTime,
+      passMark,
+      instructions,
+      shuffleQuestions,
+      shuffleOptions,
+      showResultAfter,
     } = req.body;
 
     if (!termId) {
@@ -21,14 +32,18 @@ exports.createExam = async (req, res) => {
 
     const questions = await Question.find({ _id: { $in: questionIds } });
     if (questions.length !== questionIds.length) {
-      return res.status(400).json({ message: "One or more question IDs are invalid" });
+      return res
+        .status(400)
+        .json({ message: "One or more question IDs are invalid" });
     }
 
     const exam = await Exam.create({
-      title, subject, classId,
+      title,
+      subject,
+      classId,
       armId: armId || null,
       sessionId,
-      termId,            // ← add termId
+      termId, // ← add termId
       createdBy: req.user._id,
       questions: questionIds,
       duration,
@@ -79,7 +94,6 @@ exports.getExams = async (req, res) => {
       .sort({ createdAt: -1 });
 
     res.json(exams);
-    
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -115,13 +129,23 @@ exports.updateExam = async (req, res) => {
 
     // Prevent editing an exam that's already active or closed
     if (exam.status !== "draft") {
-      return res.status(400).json({ message: "Only draft exams can be edited" });
+      return res
+        .status(400)
+        .json({ message: "Only draft exams can be edited" });
     }
 
     const editableFields = [
-      "title", "duration", "startTime", "endTime", "passMark",
-      "instructions", "shuffleQuestions", "shuffleOptions",
-      "showResultAfter", "questions", "termId",
+      "title",
+      "duration",
+      "startTime",
+      "endTime",
+      "passMark",
+      "instructions",
+      "shuffleQuestions",
+      "shuffleOptions",
+      "showResultAfter",
+      "questions",
+      "termId",
     ];
 
     editableFields.forEach((f) => {
@@ -153,7 +177,9 @@ exports.updateExamStatus = async (req, res) => {
 
     // Prevent reopening a closed exam
     if (exam.status === "closed" && status !== "closed") {
-      return res.status(400).json({ message: "A closed exam cannot be reopened" });
+      return res
+        .status(400)
+        .json({ message: "A closed exam cannot be reopened" });
     }
 
     exam.status = status;
@@ -195,7 +221,9 @@ exports.deleteExam = async (req, res) => {
     }
 
     if (exam.status !== "draft") {
-      return res.status(400).json({ message: "Only draft exams can be deleted" });
+      return res
+        .status(400)
+        .json({ message: "Only draft exams can be deleted" });
     }
 
     await exam.deleteOne();
@@ -217,7 +245,9 @@ exports.getExamResults = async (req, res) => {
 
     const sessions = await ExamSession.find({ exam: exam._id })
       .populate("student", "name admissionNumber")
-      .select("student score total percentage passed status timeSpent submittedAt autoSubmitted")
+      .select(
+        "student score total percentage passed status timeSpent submittedAt autoSubmitted",
+      )
       .sort({ percentage: -1 }); // highest score first
 
     const summary = {
@@ -226,7 +256,10 @@ exports.getExamResults = async (req, res) => {
       passed: sessions.filter((s) => s.passed).length,
       failed: sessions.filter((s) => s.passed === false).length,
       averageScore: sessions.length
-        ? Math.round(sessions.reduce((acc, s) => acc + (s.percentage || 0), 0) / sessions.length)
+        ? Math.round(
+            sessions.reduce((acc, s) => acc + (s.percentage || 0), 0) /
+              sessions.length,
+          )
         : 0,
     };
 
@@ -265,6 +298,38 @@ exports.getAvailableExams = async (req, res) => {
     }
 
     const now = new Date();
+    const base = { classId: enrollment.classId };
+    console.log({
+      enrollmentClass: enrollment.classId,
+      enrollmentArm: enrollment.armId,
+      activeSession: activeSession._id,
+      activeTerm: activeTerm._id,
+      now,
+      byClass: await Exam.countDocuments(base),
+      bySession: await Exam.countDocuments({
+        ...base,
+        sessionId: activeSession._id,
+      }),
+      byTerm: await Exam.countDocuments({
+        ...base,
+        sessionId: activeSession._id,
+        termId: activeTerm._id,
+      }),
+      byStatus: await Exam.countDocuments({
+        ...base,
+        sessionId: activeSession._id,
+        termId: activeTerm._id,
+        status: "active",
+      }),
+      byTime: await Exam.countDocuments({
+        ...base,
+        sessionId: activeSession._id,
+        termId: activeTerm._id,
+        status: "active",
+        startTime: { $lte: now },
+        endTime: { $gte: now },
+      }),
+    });
 
     const exams = await Exam.find({
       classId: enrollment.classId,
@@ -295,7 +360,7 @@ exports.getAvailableExams = async (req, res) => {
           score: session?.score ?? null,
           percentage: session?.percentage ?? null,
         };
-      })
+      }),
     );
 
     res.json(examsWithStatus);
